@@ -1,9 +1,9 @@
 # Stage 1: Build environment and Composer dependencies
-FROM php:8.5-fpm AS builder
+FROM php:8.4-fpm AS builder
 
-# Install system dependencies and PHP extensions for Laravel with PostgreSQL support.
-# Dependencies in this stage are only required for building the final image.
-# Node.js and asset building are handled in the Nginx stage, not here.
+# Install system dependencies and PHP extensions required for Laravel + MySQL/PostgreSQL support
+# Some dependencies are required for PHP extensions only in the build stage
+# We don't need to install Node.js or build assets, as it was done in the Nginx image
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     unzip \
@@ -15,21 +15,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libicu-dev \
     libzip-dev \
     && docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
     pdo_pgsql \
     pgsql \
+    opcache \
     intl \
     zip \
     bcmath \
     soap \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 
 # Set the working directory inside the container
 WORKDIR /var/www
 
 # Copy the entire Laravel application code into the container
 # -----------------------------------------------------------
-# In Laravel, `composer install` may trigger scripts
-# needing access to application code.
+# In Laravel, the `composer install` command often triggers
+# scripts that need access to the entire application code.
 # For example, the `post-autoload-dump` event might execute
 # Artisan commands like `php artisan package:discover`. If the
 # application code (including the `artisan` file) is not
@@ -43,30 +48,27 @@ WORKDIR /var/www
 # -----------------------------------------------------------
 COPY . /var/www
 
-# Copy Composer binary from official image (safer than curl | php)
-COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+# Install Composer and dependencies
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+    && composer install --no-dev --optimize-autoloader --no-interaction --no-progress --prefer-dist
 
-# Install production dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress --prefer-dist
 
 # Stage 2: Production environment
-FROM php:8.5-fpm AS production
+FROM php:8.4-fpm AS production
 
 # Install only runtime libraries needed in production
 # libfcgi-bin and procps are required for the php-fpm-healthcheck script
-# gosu is used for proper privilege dropping in the entrypoint
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     libicu-dev \
     libzip-dev \
     libfcgi-bin \
     procps \
-    gosu \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Download and install php-fpm health check script (pinned to v0.6.4)
+# Download and install php-fpm health check script
 RUN curl -o /usr/local/bin/php-fpm-healthcheck \
-    https://raw.githubusercontent.com/renatomefi/php-fpm-healthcheck/v0.6.4/php-fpm-healthcheck \
+    https://raw.githubusercontent.com/renatomefi/php-fpm-healthcheck/master/php-fpm-healthcheck \
     && chmod +x /usr/local/bin/php-fpm-healthcheck
 
 # Copy the initialization script
@@ -90,8 +92,8 @@ COPY --from=builder /usr/local/bin/docker-php-ext-* /usr/local/bin/
 # -----------------------------------------------------------
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-# Keep the image-provided FPM global config intact and add pool overrides separately
-COPY ./docker/common/php-fpm/conf.d/*.conf /usr/local/etc/php-fpm.d/
+# Enable PHP-FPM status page by modifying zz-docker.conf with sed
+RUN sed -i '/\[www\]/a pm.status_path = /status' /usr/local/etc/php-fpm.d/zz-docker.conf
 # Update the variables_order to include E (for ENV)
 #RUN sed -i 's/variables_order = "GPCS"/variables_order = "EGPCS"/' "$PHP_INI_DIR/php.ini"
 
@@ -104,18 +106,21 @@ WORKDIR /var/www
 # Ensure correct permissions
 RUN chown -R www-data:www-data /var/www
 
-# The entrypoint runs as root to handle storage init and permissions,
-# then drops privileges to www-data via gosu before exec'ing php-fpm.
+# Switch to the non-privileged user to run the application
+USER www-data
+
+# Change the default command to run the entrypoint script
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # Expose port 9000 and start php-fpm server
 EXPOSE 9000
 CMD ["php-fpm"]
 
-# Builds a dev-only layer on top of the production image
+
+# Stage 3: Development image
 FROM production AS development
 
-# Use ARGs to define environment variables passed from the Docker build command or Docker Compose.
+# Use ARG to define environment variables passed from the Docker build command or Docker Compose.
 ARG XDEBUG_ENABLED=true
 ARG XDEBUG_MODE=develop,coverage,debug,profile
 ARG XDEBUG_HOST=host.docker.internal
@@ -163,8 +168,10 @@ WORKDIR /var/www
 COPY ./docker/development/php-fpm/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# The entrypoint runs as root to handle permissions,
-# then drops privileges to www via gosu before exec'ing php-fpm.
+# Switch back to the non-privileged user to run the application
+USER www-data
+
+# Change the default command to run the entrypoint script
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # Expose port 9000 and start php-fpm server

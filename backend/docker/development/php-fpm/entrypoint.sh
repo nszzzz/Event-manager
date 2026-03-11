@@ -15,5 +15,5 @@ php artisan config:clear
 php artisan route:clear
 php artisan view:clear
 
-# Drop privileges from root to www and exec the CMD
-exec gosu www "$@"
+# Run the default command (e.g., php-fpm or bash)
+exec "$@"
