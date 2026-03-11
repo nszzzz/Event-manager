@@ -18,18 +18,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
     libicu-dev \
     libzip-dev \
+    gosu \
     && docker-php-ext-install -j$(nproc) \
-    pdo_mysql \
     pdo_pgsql \
     pgsql \
     intl \
     zip \
     bcmath \
     soap \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Copy Composer binary from official image (safer than curl | php)
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
 # Use ARG to define environment variables passed from the Docker build command or Docker Compose.
 ARG XDEBUG_ENABLED
@@ -65,8 +65,11 @@ RUN if getent group ${GID}; then \
 USER www
 
 # Install NVM (Node Version Manager) as the www user
+# Download the install script, verify its checksum, then execute it.
 RUN export NVM_DIR="$HOME/.nvm" && \
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash && \
+    curl -o /tmp/nvm-install.sh https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh && \
+    bash /tmp/nvm-install.sh && \
+    rm /tmp/nvm-install.sh && \
     [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && \
     nvm install ${NODE_VERSION} && \
     nvm alias default ${NODE_VERSION} && \

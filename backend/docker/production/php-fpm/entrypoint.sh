@@ -28,5 +28,5 @@ php artisan migrate --force
 php artisan config:cache
 php artisan route:cache
 
-# Run the default command
-exec "$@"
+# Drop privileges from root to www-data and exec the CMD
+exec gosu www-data "$@"

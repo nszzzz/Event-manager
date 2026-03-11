@@ -1,7 +1,7 @@
 # Stage 1: Build environment and Composer dependencies
 FROM php:8.5-fpm AS builder
 
-# Install system dependencies and PHP extensions for Laravel with MySQL/PostgreSQL support.
+# Install system dependencies and PHP extensions for Laravel with PostgreSQL support.
 # Dependencies in this stage are only required for building the final image.
 # Node.js and asset building are handled in the Nginx stage, not here.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -15,15 +15,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libicu-dev \
     libzip-dev \
     && docker-php-ext-install -j$(nproc) \
-    pdo_mysql \
     pdo_pgsql \
     pgsql \
     intl \
     zip \
     bcmath \
     soap \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Set the working directory inside the container
@@ -46,30 +43,34 @@ WORKDIR /var/www
 # -----------------------------------------------------------
 COPY . /var/www
 
-# Install Composer and dependencies
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-    && composer install --no-dev --optimize-autoloader --no-interaction --no-progress --prefer-dist
+# Copy Composer binary from official image (safer than curl | php)
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+
+# Install production dependencies
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress --prefer-dist
 
 # Stage 2: Production environment
 FROM php:8.5-fpm AS production
 
 # Install only runtime libraries needed in production
 # libfcgi-bin and procps are required for the php-fpm-healthcheck script
+# gosu is used for proper privilege dropping in the entrypoint
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     libicu-dev \
     libzip-dev \
     libfcgi-bin \
     procps \
+    gosu \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Download and install php-fpm health check script
+# Download and install php-fpm health check script (pinned to v0.6.4)
 RUN curl -o /usr/local/bin/php-fpm-healthcheck \
-    https://raw.githubusercontent.com/renatomefi/php-fpm-healthcheck/master/php-fpm-healthcheck \
+    https://raw.githubusercontent.com/renatomefi/php-fpm-healthcheck/v0.6.4/php-fpm-healthcheck \
     && chmod +x /usr/local/bin/php-fpm-healthcheck
 
 # Copy the initialization script
-COPY ./docker/php-fpm/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY ./docker/production/php-fpm/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Copy the initial storage structure
@@ -103,10 +104,8 @@ WORKDIR /var/www
 # Ensure correct permissions
 RUN chown -R www-data:www-data /var/www
 
-# Switch to the non-privileged user to run the application
-USER www-data
-
-# Change the default command to run the entrypoint script
+# The entrypoint runs as root to handle storage init and permissions,
+# then drops privileges to www-data via gosu before exec'ing php-fpm.
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # Expose port 9000 and start php-fpm server
@@ -164,10 +163,8 @@ WORKDIR /var/www
 COPY ./docker/development/php-fpm/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Switch back to the non-privileged user to run the application
-USER www-data
-
-# Change the default command to run the entrypoint script
+# The entrypoint runs as root to handle permissions,
+# then drops privileges to www via gosu before exec'ing php-fpm.
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # Expose port 9000 and start php-fpm server

@@ -1,0 +1,69 @@
+# =========================================
+# Production Compose Overrides
+# =========================================
+# Extends compose.yml with production-specific configuration.
+#
+# Usage: docker compose -f compose.yml -f compose.prod.yml up -d
+
+services:
+  # -----------------------------------------
+  # PHP-FPM (Production)
+  # -----------------------------------------
+  php-fpm:
+    build:
+      context: ./backend
+      dockerfile: docker/common/php-fpm/Dockerfile
+      target: production
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    volumes:
+      # Persistent storage for uploads, cache, logs, etc.
+      # PHP-FPM needs read-write access.
+      - laravel-storage:/var/www/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php-fpm-healthcheck || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - app-network
+
+  # -----------------------------------------
+  # Nginx (Production - backend API)
+  # -----------------------------------------
+  nginx:
+    build:
+      context: ./backend
+      dockerfile: docker/production/nginx/Dockerfile
+    restart: unless-stopped
+    volumes:
+      # Mount storage as read-only – Nginx only serves static files.
+      - laravel-storage:/var/www/storage:ro
+    ports:
+      - "${BACKEND_PORT:-8000}:8080"
+    depends_on:
+      php-fpm:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  # -----------------------------------------
+  # Frontend (static Nginx build)
+  # -----------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080"
+    networks:
+      - app-network
+
+volumes:
+  laravel-storage:
