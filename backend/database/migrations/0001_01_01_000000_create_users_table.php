@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('two_factor_secret')->nullable();
             $table->json('two_factor_recovery_codes')->nullable();
             $table->string('password');
+            $table->string('role')->default('user'); 
+            // user | helpdesk_agent | admin
             $table->rememberToken();
             $table->timestamps();
         });
