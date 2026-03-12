@@ -5,15 +5,17 @@ set -e
 USER_ID=${UID:-1000}
 GROUP_ID=${GID:-1000}
 
-# Fix file ownership and permissions using the passed UID and GID
-echo "Fixing file permissions with UID=${USER_ID} and GID=${GROUP_ID}..."
-chown -R ${USER_ID}:${GROUP_ID} /var/www || echo "Some files could not be changed"
+# (Removed chown -R /var/www as it is very slow on Windows/Mac bind mounts and fails anyway)
 
-# Clear configurations to avoid caching issues in development
+# Clear configurations in development, but do not block php-fpm startup if artisan fails.
 echo "Clearing configurations..."
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
+if [ -f /var/www/artisan ]; then
+  php artisan config:clear || echo "Warning: config:clear failed, continuing startup."
+  php artisan route:clear || echo "Warning: route:clear failed, continuing startup."
+  php artisan view:clear || echo "Warning: view:clear failed, continuing startup."
+else
+  echo "Warning: /var/www/artisan not found, skipping cache clear commands."
+fi
 
 # Run the default command (e.g., php-fpm or bash)
 exec "$@"

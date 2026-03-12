@@ -146,7 +146,8 @@ fi
 ARG UID=1000
 ARG GID=1000
 
-# Create a new user with the specified UID and GID, reusing an existing group if GID exists
+# Create a new user with the specified UID and GID, reusing an existing group if GID exists,
+# then update php-fpm pool user/group in the same layer so group_name is available.
 RUN if getent group ${GID}; then \
       group_name=$(getent group ${GID} | cut -d: -f1); \
       useradd -m -u ${UID} -g ${GID} -s /bin/bash www; \
@@ -154,11 +155,9 @@ RUN if getent group ${GID}; then \
       groupadd -g ${GID} www && \
       useradd -m -u ${UID} -g www -s /bin/bash www; \
       group_name=www; \
-    fi
-
-# Dynamically update php-fpm to use the new user and group
-RUN sed -i "s/user = www-data/user = www/g" /usr/local/etc/php-fpm.d/www.conf && \
-    sed -i "s/group = www-data/group = $group_name/g" /usr/local/etc/php-fpm.d/www.conf
+    fi && \
+    sed -i "s/user = www-data/user = www/g" /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i "s/group = www-data/group = ${group_name}/g" /usr/local/etc/php-fpm.d/www.conf
 
 
 # Set the working directory
