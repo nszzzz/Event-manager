@@ -16,4 +16,9 @@ class Events extends Model
         'occurrence_at',
         'description'
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

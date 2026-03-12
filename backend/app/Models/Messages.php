@@ -17,4 +17,14 @@ class Messages extends Model
         'content',
         'message_type',
     ];
+
+    public function conversation()
+    {
+        return $this->belongsTo(Conversations::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

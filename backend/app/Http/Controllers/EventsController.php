@@ -6,9 +6,18 @@ use App\Models\Events;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreEventsRequest;
 use App\Http\Requests\UpdateEventsRequest;
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Support\Facades\Gate;
 
-class EventsController extends Controller
+class EventsController extends Controller implements HasMiddleware
 {
+    public static function middleware()
+    {
+        return [
+            new Middleware('auth:sanctum', except: ['index', 'show'])
+            ];
+    }
     /**
      * Display a listing of the resource.
      */
@@ -23,7 +32,7 @@ class EventsController extends Controller
     public function store(StoreEventsRequest $request)
     {
         $fields = $request->validate();
-        $event = Events::create($fields);
+        $event = $request->user()->events()->create($fields);
         return  ['event' => $event];
     }
 
@@ -40,6 +49,7 @@ class EventsController extends Controller
      */
     public function update(UpdateEventsRequest $request, Events $events)
     {
+        Gate::authorize('modify', $events);
         $fields = $request->validate();
 
         $events->update($fields);
@@ -52,6 +62,7 @@ class EventsController extends Controller
      */
     public function destroy(Events $events)
     {
+        Gate::authorize('modify', $events);
         $events->delete();
 
         return [

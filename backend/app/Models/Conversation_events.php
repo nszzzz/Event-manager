@@ -17,5 +17,10 @@ class Conversation_events extends Model
     
     protected $casts = [
     'payload' => 'array'
-];
+    ];
+
+    public function conversation()
+    {
+        return $this->belongsTo(Conversations::class);
+    }
 }

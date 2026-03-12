@@ -18,4 +18,9 @@ class Conversations extends Model
         'subject',
         'closed_at'
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

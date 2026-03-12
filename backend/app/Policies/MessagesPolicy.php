@@ -2,65 +2,16 @@
 
 namespace App\Policies;
 
+use App\Models\Conversations;
 use Illuminate\Auth\Access\Response;
 use App\Models\Messages;
-use App\Models\User;
 
 class MessagesPolicy
 {
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
+    public function modify(Conversations $conversations, Messages $messages): Response
     {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(User $user, Messages $messages): bool
-    {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user): bool
-    {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, Messages $messages): bool
-    {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, Messages $messages): bool
-    {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can restore the model.
-     */
-    public function restore(User $user, Messages $messages): bool
-    {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
-    public function forceDelete(User $user, Messages $messages): bool
-    {
-        return false;
+         return $conversations->id === $messages->conversation_id
+             ? Response::allow()
+             : Response::deny('You do not own this message.');
     }
 }

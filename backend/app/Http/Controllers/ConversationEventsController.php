@@ -6,9 +6,19 @@ use App\Models\Conversation_events;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreConversation_eventsRequest;
 use App\Http\Requests\UpdateConversation_eventsRequest;
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Support\Facades\Gate;
 
-class ConversationEventsController extends Controller
+class ConversationEventsController extends Controller implements HasMiddleware
 {
+    public static function middleware()
+    {
+        return [
+            new Middleware('auth:sanctum', except: ['index', 'show'])
+            ];
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -23,7 +33,7 @@ class ConversationEventsController extends Controller
     public function store(StoreConversation_eventsRequest $request)
     {
         $fields = $request->validate();
-        $conversation_event = Conversation_events::create($fields);
+        $conversation_event = $request->conversations()->conversation_events()->create($fields);
         return  ['conversation_event' => $conversation_event];
     }
 
@@ -40,6 +50,7 @@ class ConversationEventsController extends Controller
      */
     public function update(UpdateConversation_eventsRequest $request, Conversation_events $conversation_events)
     {
+        Gate::authorize('modify', $conversation_events);
         $fields = $request->validate();
 
         $conversation_events->update($fields);
@@ -52,6 +63,7 @@ class ConversationEventsController extends Controller
      */
     public function destroy(Conversation_events $conversation_events)
     {
+        Gate::authorize('modify', $conversation_events);
         $conversation_events->delete();
 
         return [

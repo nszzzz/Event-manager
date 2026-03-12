@@ -6,9 +6,18 @@ use App\Models\Conversations;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreConversationsRequest;
 use App\Http\Requests\UpdateConversationsRequest;
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Support\Facades\Gate;
 
-class ConversationsController extends Controller
+class ConversationsController extends Controller implements HasMiddleware
 {
+    public static function middleware()
+    {
+        return [
+            new Middleware('auth:sanctum', except: ['index', 'show'])
+            ];
+    }
     /**
      * Display a listing of the resource.
      */
@@ -23,7 +32,7 @@ class ConversationsController extends Controller
     public function store(StoreConversationsRequest $request)
     {
         $fields = $request->validate();
-        $conversation = Conversations::create($fields);
+        $conversation = $request->user()->conversations()->create($fields);
         return  ['conversation' => $conversation];
     }
 
@@ -40,6 +49,7 @@ class ConversationsController extends Controller
      */
     public function update(UpdateConversationsRequest $request, Conversations $conversations)
     {
+        Gate::authorize('modify', $conversations);
         $fields = $request->validate();
 
         $conversations->update($fields);
@@ -52,6 +62,7 @@ class ConversationsController extends Controller
      */
     public function destroy(Conversations $conversations)
     {
+        Gate::authorize('modify', $conversations);
         $conversations->delete();
 
         return [
