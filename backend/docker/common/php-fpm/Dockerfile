@@ -93,7 +93,7 @@ COPY --from=builder /usr/local/bin/docker-php-ext-* /usr/local/bin/
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
 # Enable PHP-FPM status page by modifying zz-docker.conf with sed
-RUN sed -i '/\[www\]/a pm.status_path = /status' /usr/local/etc/php-fpm.d/zz-docker.conf
+RUN sed -i '/^\[www\]/a pm.status_path = /status' /usr/local/etc/php-fpm.d/www.conf
 # Update the variables_order to include E (for ENV)
 #RUN sed -i 's/variables_order = "GPCS"/variables_order = "EGPCS"/' "$PHP_INI_DIR/php.ini"
 
@@ -129,6 +129,12 @@ ARG XDEBUG_LOG=/dev/stdout
 ARG XDEBUG_LOG_LEVEL=0
 
 USER root
+
+# Install git in development to avoid proc_open warnings from dev-only packages
+# that try to run `git describe` during artisan bootstrap.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Configure Xdebug if enabled
 RUN if [ "${XDEBUG_ENABLED}" = "true" ]; then \
