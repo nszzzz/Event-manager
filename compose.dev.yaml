@@ -1,0 +1,111 @@
+name: event-manager-dev
+
+services:
+  web:
+    image: nginx:latest
+    volumes:
+      - ./backend:/var/www
+      - ./backend/docker/development/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "${BACKEND_PORT:-8000}:80"
+    environment:
+      NGINX_HOST: localhost
+    depends_on:
+      php-fpm:
+        condition: service_started
+    networks:
+      - app-development
+
+  php-fpm:
+    build:
+      context: ./backend
+      dockerfile: docker/common/php-fpm/Dockerfile
+      target: development
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+        XDEBUG_ENABLED: ${XDEBUG_ENABLED:-true}
+        XDEBUG_MODE: ${XDEBUG_MODE:-develop,coverage,debug,profile}
+        XDEBUG_HOST: ${XDEBUG_HOST:-host.docker.internal}
+        XDEBUG_IDE_KEY: ${XDEBUG_IDE_KEY:-DOCKER}
+        XDEBUG_LOG: /dev/stdout
+        XDEBUG_LOG_LEVEL: 0
+    env_file:
+      - ./backend/.env
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ./backend:/var/www
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-development
+
+  workspace:
+    build:
+      context: ./backend
+      dockerfile: docker/development/workspace/Dockerfile
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+        XDEBUG_ENABLED: ${XDEBUG_ENABLED:-true}
+        XDEBUG_MODE: ${XDEBUG_MODE:-develop,coverage,debug,profile}
+        XDEBUG_HOST: ${XDEBUG_HOST:-host.docker.internal}
+        XDEBUG_IDE_KEY: ${XDEBUG_IDE_KEY:-DOCKER}
+        XDEBUG_LOG: /dev/stdout
+        XDEBUG_LOG_LEVEL: 0
+    ports:
+      - "${BACKEND_VITE_PORT:-5174}:5173"
+    tty: true
+    stdin_open: true
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/var/www
+    networks:
+      - app-development
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    develop:
+      watch:
+        - path: ./frontend/src
+          target: /app/src
+          action: sync
+        - path: ./frontend/package.json
+          target: /app/package.json
+          action: restart
+        - path: ./frontend/vite.config.js
+          target: /app/vite.config.js
+          action: restart
+    networks:
+      - app-development
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DATABASE:-app}
+      POSTGRES_USER: ${POSTGRES_USERNAME:-laravel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+    volumes:
+      - postgres-data-development:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USERNAME:-laravel} -d ${POSTGRES_DATABASE:-app}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-development
+
+networks:
+  app-development:
+
+volumes:
+  postgres-data-development:

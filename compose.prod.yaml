@@ -1,0 +1,79 @@
+name: event-manager-prod
+
+services:
+  web:
+    build:
+      context: ./backend
+      dockerfile: docker/production/nginx/Dockerfile
+    restart: unless-stopped
+    volumes:
+      - laravel-storage-production:/var/www/storage:ro
+      - laravel-public-assets:/var/www/public/build:ro
+    ports:
+      - "${BACKEND_PORT:-8000}:80"
+    depends_on:
+      php-fpm:
+        condition: service_healthy
+    networks:
+      - app-production
+
+  php-fpm:
+    build:
+      context: ./backend
+      dockerfile: docker/common/php-fpm/Dockerfile
+      target: production
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    volumes:
+      - laravel-public-assets:/var/www/public/build
+      - laravel-storage-production:/var/www/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php-fpm-healthcheck || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - app-production
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080"
+    networks:
+      - app-production
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    user: postgres
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DATABASE:-app}
+      POSTGRES_USER: ${POSTGRES_USERNAME:-laravel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+    volumes:
+      - postgres-data-production:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USERNAME:-laravel} -d ${POSTGRES_DATABASE:-app}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-production
+
+networks:
+  app-production:
+
+volumes:
+  postgres-data-production:
+  laravel-storage-production:
+  laravel-public-assets:

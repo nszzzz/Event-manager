@@ -1,6 +1,12 @@
-# docker/nginx/Dockerfile
 # Stage 1: Build assets
-FROM node:22-bookworm-slim AS builder
+FROM debian AS builder
+
+# Install Node.js and build tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    nodejs \
+    npm \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Set working directory
 WORKDIR /var/www
@@ -9,10 +15,10 @@ WORKDIR /var/www
 COPY . /var/www
 
 # Install Node.js dependencies and build assets
-RUN npm ci && npm run build
+RUN npm install && npm run build
 
 # Stage 2: Nginx production image
-FROM nginxinc/nginx-unprivileged:1.27-alpine AS runner
+FROM nginx:alpine
 
 # Copy custom Nginx configuration
 # -----------------------------------------------------------
@@ -25,14 +31,11 @@ COPY ./docker/production/nginx/nginx.conf /etc/nginx/nginx.conf
 # -----------------------------------------------------------
 # We only need the 'public' directory from our Laravel app.
 # -----------------------------------------------------------
-COPY --chown=nginx:nginx --from=builder /var/www/public /var/www/public
-
-# Use a built-in non-root user for security
-USER nginx
+COPY --from=builder /var/www/public /var/www/public
 
 # Set the working directory to the public folder
 WORKDIR /var/www/public
 
-# Expose port 8080 (nginx-unprivileged default)
-EXPOSE 8080
+# Expose port 80 and start Nginx
+EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
