@@ -25,6 +25,7 @@ class UpdateMessagesRequest extends FormRequest
             'content' => [
                 'required',
                 'string',
+                'min:1',
                 'max:5000'
             ],
 
@@ -40,6 +41,7 @@ class UpdateMessagesRequest extends FormRequest
     {
         return [
             'content.required' => 'Message content is required.',
+            'content.min' => 'The message must be at least 1 character.',
             'content.max' => 'The message may not exceed 5000 characters.',
             'message_type.in' => 'Invalid message type.',
         ];
