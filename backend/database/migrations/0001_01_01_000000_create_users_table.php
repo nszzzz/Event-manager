@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('two_factor_secret')->nullable();
-            $table->json('two_factor_recovery_codes')->nullable();
+            $table->string('two_factor_code')->nullable();
+            $table->dateTime('two_factor_expires_at')->nullable();
             $table->string('password');
             $table->string('role')->default('user'); 
             // user | helpdesk_agent | admin

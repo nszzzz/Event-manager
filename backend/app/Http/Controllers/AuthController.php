@@ -6,8 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\AuthRegisterRequest;
 use App\Http\Requests\Auth\AuthLoginRequest;
 use App\Models\User;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Events\Verified;
+use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -18,8 +17,6 @@ class AuthController extends Controller
         $user = User::create($request->validated());
 
         $token = $user->createToken($request->name);
-
-        event(new Registered($user));
         
         return [
             'user' => $user,
@@ -41,6 +38,9 @@ class AuthController extends Controller
 
         $token = $user->createToken($user->name);
 
+        $user->regenerateTwoFactorCode();
+        $user->notify(new TwoFactorCodeNotification());
+
         return [
             'user' => $user,
             'token' => $token->plainTextToken,
@@ -54,25 +54,5 @@ class AuthController extends Controller
         return [
             'message' => 'You are logged out.'
         ];
-    }
-
-    public function verifyEmail(Request $request, $id, $hash)
-    {
-        $user = User::findOrFail($id);
-
-        if (! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
-            return response()->json(['message' => 'Invalid verification link'], 403);
-        }
-
-        if (! $request->hasValidSignature()) {
-            return response()->json(['message' => 'Invalid or expired verification link'], 403);
-        }
-
-        if (! $user->hasVerifiedEmail()) {
-            $user->markEmailAsVerified();
-            event(new Verified($user));
-        }
-
-        return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?verified=1');
     }
 }
