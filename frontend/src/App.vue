@@ -6,7 +6,8 @@
   <header>
     
     <nav>
-      <RouterLink to="/">Home</RouterLink> | 
+      <RouterLink :to="{ name: 'home' }">Home</RouterLink>
+      <RouterLink :to="{ name: 'login' }">Login</RouterLink>
     </nav>
   </header>
 

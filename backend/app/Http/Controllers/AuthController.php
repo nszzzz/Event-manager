@@ -36,14 +36,13 @@ class AuthController extends Controller
             ];
         }
 
-        $token = $user->createToken($user->name);
+        $user->createToken($user->name);
 
         $user->regenerateTwoFactorCode();
         $user->notify(new TwoFactorCodeNotification());
 
         return [
-            'user' => $user,
-            'token' => $token->plainTextToken,
+            'message' => 'A two factor code has been sent to your email address.',
         ];
     }
 

@@ -16,8 +16,21 @@ This guide contains the Docker commands for this project.
 ### Start
 - Build and run all dev services:
   - `docker compose -f compose.dev.yaml up -d --build`
+- Build, run, and enable file watching in one command:
+  - `docker compose -f compose.dev.yaml up -d --build --watch`
 - Run without rebuild:
   - `docker compose -f compose.dev.yaml up -d`
+
+### Live Reload / Watch
+- Recommended workflow:
+  - `docker compose -f compose.dev.yaml up -d --build`
+  - `docker compose -f compose.dev.yaml watch frontend`
+- Alternative one-liner:
+  - `docker compose -f compose.dev.yaml up -d --build --watch`
+- Notes:
+  - Only services with `develop.watch` rules are watched (in this project: `frontend`).
+  - Backend services (`web`, `php-fpm`, `postgres`) continue running normally and are not restarted by frontend file changes.
+  - If frontend config changes are not picked up, verify the watched config filename in `compose.dev.yaml` matches your actual Vite config file (for example `vite.config.ts`).
 
 ### Stop / Remove
 - Stop containers:
