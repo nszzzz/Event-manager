@@ -17,7 +17,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         $user = $request->user();
         return response()->json([
-            'user' => $user,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+            ],
             'two_factor_required' => $user->two_factor_code !== null,
         ]);
     });
@@ -30,4 +35,16 @@ Route::middleware('auth:sanctum')->group(function () {
 // Fully authenticated (2FA verified) routes
 Route::middleware(['auth:sanctum', 'two.factor'])->group(function () {
     Route::apiResource('events', EventsController::class);
+
+    Route::get('/home/help-panel', function () {
+        return response()->json([
+            'message' => 'Help panel data placeholder.',
+        ]);
+    })->middleware('role:user,admin');
+
+    Route::get('/home/helpdesk-chat-panel', function () {
+        return response()->json([
+            'message' => 'Helpdesk chat panel data placeholder.',
+        ]);
+    })->middleware('role:helpdesk_agent,admin');
 });
