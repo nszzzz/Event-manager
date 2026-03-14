@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import EventCreateCard from "@/components/events/EventCreateCard.vue"
 import EventDetailSheet from "@/components/events/EventDetailSheet.vue"
+import EventEditSheet from "@/components/events/EventEditSheet.vue"
 import EventListSectionCard from "@/components/events/EventListSectionCard.vue"
 import {
   extractApiError,
@@ -23,6 +24,11 @@ const formError = ref("")
 const formSuccess = ref("")
 const isDetailsOpen = ref(false)
 const selectedEvent = ref<EventItem | null>(null)
+const isEditOpen = ref(false)
+const editingEvent = ref<EventItem | null>(null)
+const isUpdating = ref(false)
+const editError = ref("")
+const updatingEventIds = ref<string[]>([])
 const deletingEventIds = ref<string[]>([])
 
 const events = ref<EventItem[]>([])
@@ -173,6 +179,88 @@ function openEventDetails(event: EventItem) {
   isDetailsOpen.value = true
 }
 
+function openEditEvent(event: EventItem) {
+  editError.value = ""
+  editingEvent.value = event
+  isEditOpen.value = true
+}
+
+function handleEditOpenChange(open: boolean) {
+  isEditOpen.value = open
+
+  if (!open && !isUpdating.value) {
+    editError.value = ""
+    editingEvent.value = null
+  }
+}
+
+async function updateEvent(payload: { title: string; occurrenceAt: string; description: string }) {
+  editError.value = ""
+
+  if (!editingEvent.value) {
+    editError.value = "Event data is missing."
+    return
+  }
+
+  const id = String(editingEvent.value.id)
+  if (updatingEventIds.value.includes(id)) {
+    return
+  }
+
+  if (payload.title.trim() === "") {
+    editError.value = "Title is required."
+    return
+  }
+
+  if (payload.occurrenceAt.trim() === "") {
+    editError.value = "Date and time are required."
+    return
+  }
+
+  isUpdating.value = true
+  updatingEventIds.value = [...updatingEventIds.value, id]
+
+  try {
+    const token = localStorage.getItem("token")
+    const res = await fetch(`/api/events/${editingEvent.value.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        title: payload.title.trim(),
+        occurrence_at: toIsoString(payload.occurrenceAt),
+        description: payload.description.trim() === "" ? null : payload.description.trim(),
+      }),
+    })
+
+    const data = await res.json()
+    if (!res.ok) {
+      editError.value = extractApiError(data, "Could not update event.")
+      return
+    }
+
+    const updatedEvent = (data?.event ?? data) as EventItem
+    events.value = events.value.map((event) =>
+      String(event.id) === id ? updatedEvent : event,
+    )
+
+    if (selectedEvent.value && String(selectedEvent.value.id) === id) {
+      selectedEvent.value = updatedEvent
+    }
+
+    editingEvent.value = updatedEvent
+    isEditOpen.value = false
+    editError.value = ""
+  } catch (error) {
+    editError.value = "Could not update event."
+  } finally {
+    isUpdating.value = false
+    updatingEventIds.value = updatingEventIds.value.filter((eventId) => eventId !== id)
+  }
+}
+
 async function deleteEvent(event: EventItem) {
   const id = String(event.id)
   if (deletingEventIds.value.includes(id)) {
@@ -274,13 +362,16 @@ function matchesSectionFilters(event: EventItem, search: string, month: string) 
       :is-loading="isLoading"
       :load-error="loadError"
       layout="grid"
+      :show-edit-action="true"
       :show-delete-action="true"
+      :updating-ids="updatingEventIds"
       :deleting-ids="deletingEventIds"
       :search-query="mySearchQuery"
       :month-filter="myMonthFilter"
       @update:search-query="mySearchQuery = $event"
       @update:month-filter="myMonthFilter = $event"
       @open-details="openEventDetails"
+      @edit="openEditEvent"
       @delete="deleteEvent"
     />
 
@@ -304,6 +395,15 @@ function matchesSectionFilters(event: EventItem, search: string, month: string) 
       :open="isDetailsOpen"
       :event="selectedEvent"
       @update:open="isDetailsOpen = $event"
+    />
+
+    <EventEditSheet
+      :open="isEditOpen"
+      :event="editingEvent"
+      :is-updating="isUpdating"
+      :error-message="editError"
+      @update:open="handleEditOpenChange"
+      @submit="updateEvent"
     />
   </div>
 </template>

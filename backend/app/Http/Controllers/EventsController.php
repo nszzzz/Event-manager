@@ -42,31 +42,31 @@ class EventsController extends Controller implements HasMiddleware
     /**
      * Display the specified resource.
      */
-    public function show(Events $events)
+    public function show(Events $event)
     {
-        return $events;
+        return $event;
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateEventsRequest $request, Events $events)
+    public function update(UpdateEventsRequest $request, Events $event)
     {
-        Gate::authorize('modify', $events);
+        Gate::authorize('modify', $event);
         $fields = $request->validated();
 
-        $events->update($fields);
-        return $events->load('user:id,name,email');
+        $event->update($fields);
+        return $event->load('user:id,name,email');
 
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Events $events)
+    public function destroy(Events $event)
     {
-        Gate::authorize('modify', $events);
-        $events->delete();
+        Gate::authorize('modify', $event);
+        $event->delete();
 
         return [
             'message' => 'Event deleted successfully.'

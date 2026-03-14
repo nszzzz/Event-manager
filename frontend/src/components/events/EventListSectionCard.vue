@@ -24,7 +24,9 @@ const props = withDefaults(defineProps<{
   showPastBadge?: boolean
   layout?: "list" | "grid"
   clickable?: boolean
+  showEditAction?: boolean
   showDeleteAction?: boolean
+  updatingIds?: Array<number | string>
   deletingIds?: Array<number | string>
   skeletonCount?: number
   searchQuery?: string
@@ -36,7 +38,9 @@ const props = withDefaults(defineProps<{
   showPastBadge: false,
   layout: "list",
   clickable: true,
+  showEditAction: false,
   showDeleteAction: false,
+  updatingIds: () => [],
   deletingIds: () => [],
   skeletonCount: 9,
   searchQuery: "",
@@ -46,6 +50,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   openDetails: [event: EventItem]
+  edit: [event: EventItem]
   delete: [event: EventItem]
   "update:searchQuery": [value: string]
   "update:monthFilter": [value: string]
@@ -54,6 +59,11 @@ const emit = defineEmits<{
 function isDeleting(event: EventItem) {
   const target = String(event.id)
   return props.deletingIds.some((id) => String(id) === target)
+}
+
+function isUpdating(event: EventItem) {
+  const target = String(event.id)
+  return props.updatingIds.some((id) => String(id) === target)
 }
 
 function handleSearchUpdate(value: string | number) {
@@ -175,9 +185,12 @@ watch(
           :event="event"
           :show-past-badge="props.showPastBadge"
           :clickable="props.clickable"
+          :show-edit-action="props.showEditAction"
           :show-delete-action="props.showDeleteAction"
+          :is-updating="isUpdating(event)"
           :is-deleting="isDeleting(event)"
           @open-details="emit('openDetails', $event)"
+          @edit="emit('edit', $event)"
           @delete="emit('delete', $event)"
         />
       </div>

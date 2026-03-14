@@ -18,23 +18,28 @@ import {
   getCreatorName,
   type EventItem,
 } from "@/lib/events"
-import { IconDotsVertical, IconTrash } from "@tabler/icons-vue"
+import { IconDotsVertical, IconPencil, IconTrash } from "@tabler/icons-vue"
 
 const props = withDefaults(defineProps<{
   event: EventItem
   showPastBadge?: boolean
   clickable?: boolean
+  showEditAction?: boolean
   showDeleteAction?: boolean
+  isUpdating?: boolean
   isDeleting?: boolean
 }>(), {
   showPastBadge: false,
   clickable: true,
+  showEditAction: false,
   showDeleteAction: false,
+  isUpdating: false,
   isDeleting: false,
 })
 
 const emit = defineEmits<{
   openDetails: [event: EventItem]
+  edit: [event: EventItem]
   delete: [event: EventItem]
 }>()
 
@@ -43,11 +48,14 @@ function handleOpenDetails() {
   emit("openDetails", props.event)
 }
 
-function handleDeleteAction(event: Event) {
-  event.preventDefault()
-  event.stopPropagation()
-  if (props.isDeleting) return
+function handleDeleteAction() {
+  if (props.isDeleting || props.isUpdating) return
   emit("delete", props.event)
+}
+
+function handleEditAction() {
+  if (props.isUpdating || props.isDeleting) return
+  emit("edit", props.event)
 }
 </script>
 
@@ -83,13 +91,13 @@ function handleDeleteAction(event: Event) {
       </p>
     </div>
 
-    <DropdownMenu v-if="props.showDeleteAction">
+    <DropdownMenu v-if="props.showDeleteAction || props.showEditAction">
       <DropdownMenuTrigger as-child>
         <Button
           variant="ghost"
           size="icon-sm"
           class="shrink-0"
-          :disabled="props.isDeleting"
+          :disabled="props.isDeleting || props.isUpdating"
           @click.stop
         >
           <IconDotsVertical class="size-4" />
@@ -98,8 +106,17 @@ function handleDeleteAction(event: Event) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem
+          v-if="props.showEditAction"
+          :disabled="props.isUpdating || props.isDeleting"
+          @select="handleEditAction"
+        >
+          <IconPencil />
+          {{ props.isUpdating ? "Updating..." : "Edit" }}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          v-if="props.showDeleteAction"
           variant="destructive"
-          :disabled="props.isDeleting"
+          :disabled="props.isDeleting || props.isUpdating"
           @select="handleDeleteAction"
         >
           <IconTrash />
