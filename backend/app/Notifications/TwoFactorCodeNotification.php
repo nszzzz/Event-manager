@@ -37,7 +37,7 @@ class TwoFactorCodeNotification extends Notification
     {
         return (new MailMessage)
             ->line("Your two factor code is: $notifiable->two_factor_code")
-            ->action('Verify Here', url('verify'))
+            ->action('Verify Here', url(env('APP_URL', 'http://localhost:5173') . '/verify'))
             ->line('The code will expire in 10 minutes.');
     }
 

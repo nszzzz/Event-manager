@@ -67,7 +67,7 @@ function dismissError() {
             <FieldLabel for="otp" class="sr-only">
               Verification code
             </FieldLabel>
-            <InputOTP id="otp" v-model="otpValue" :maxlength="6" required>
+            <InputOTP id="otp" v-model="otpValue" :maxlength="6" class="justify-center" required>
               <InputOTPGroup class="gap-2.5 *:data-[slot=input-otp-slot]:rounded-md *:data-[slot=input-otp-slot]:border">
                 <InputOTPSlot :index="0" />
                 <InputOTPSlot :index="1" />
