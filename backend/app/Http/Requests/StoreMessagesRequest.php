@@ -22,6 +22,12 @@ class StoreMessagesRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'conversation_id' => [
+                'required',
+                'integer',
+                'exists:conversations,id',
+            ],
+
             'content' => [
                 'required',
                 'string',
@@ -40,6 +46,8 @@ class StoreMessagesRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'conversation_id.required' => 'A conversation is required.',
+            'conversation_id.exists' => 'The selected conversation does not exist.',
             'content.required' => 'Message content is required.',
             'content.min' => 'The message must be at least 1 character.',
             'content.max' => 'The message may not exceed 5000 characters.',
