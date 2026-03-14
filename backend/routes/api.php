@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ConversationsController;
 use App\Http\Controllers\EventsController;
+use App\Http\Controllers\MessagesController;
 use App\Http\Controllers\TwoFactorController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -35,6 +37,16 @@ Route::middleware('auth:sanctum')->group(function () {
 // Fully authenticated (2FA verified) routes
 Route::middleware(['auth:sanctum', 'two.factor'])->group(function () {
     Route::apiResource('events', EventsController::class);
+    Route::apiResource('conversations', ConversationsController::class);
+    Route::apiResource('messages', MessagesController::class)->only(['index', 'store', 'show']);
+
+    Route::post('/conversations/{conversation}/request-agent', [ConversationsController::class, 'requestAgent']);
+    Route::post('/conversations/{conversation}/accept', [ConversationsController::class, 'accept'])
+        ->middleware('role:helpdesk_agent');
+    Route::post('/conversations/{conversation}/close', [ConversationsController::class, 'close'])
+        ->middleware('role:helpdesk_agent');
+    Route::get('/helpdesk/conversations/queue', [ConversationsController::class, 'queue'])
+        ->middleware('role:helpdesk_agent');
 
     Route::get('/home/help-panel', function () {
         return response()->json([

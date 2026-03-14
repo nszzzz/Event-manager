@@ -15,8 +15,17 @@ class MessagesPolicy
             return Response::deny('Conversation is missing for this message.');
         }
 
-        return (int) $conversation->user_id === (int) $user->id
-            ? Response::allow()
-            : Response::deny('You do not own this message.');
+        if ((int) $conversation->user_id === (int) $user->id) {
+            return Response::allow();
+        }
+
+        if (
+            $user->role === 'helpdesk_agent'
+            && (int) $conversation->assigned_agent_id === (int) $user->id
+        ) {
+            return Response::allow();
+        }
+
+        return Response::deny('You do not have permission to modify this message.');
     }
 }

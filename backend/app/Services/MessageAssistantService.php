@@ -9,10 +9,21 @@ class MessageAssistantService
 {
     public function generateReply(string $incomingContent): string
     {
+        return $this->generateReplyResult($incomingContent)['content'];
+    }
+
+    /**
+     * @return array{content: string, matched: bool}
+     */
+    public function generateReplyResult(string $incomingContent): array
+    {
         $message = Str::lower(trim($incomingContent));
 
         if ($message === '') {
-            return $this->fallbackReply();
+            return [
+                'content' => $this->fallbackReply(),
+                'matched' => false,
+            ];
         }
 
         $entries = Faq_entries::query()
@@ -35,7 +46,17 @@ class MessageAssistantService
             }
         }
 
-        return $bestAnswer ?: $this->fallbackReply();
+        if ($bestAnswer !== null) {
+            return [
+                'content' => $bestAnswer,
+                'matched' => true,
+            ];
+        }
+
+        return [
+            'content' => $this->fallbackReply(),
+            'matched' => false,
+        ];
     }
 
     private function scoreMessageAgainstKeywords(string $message, array $keywords): int

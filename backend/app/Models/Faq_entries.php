@@ -17,4 +17,9 @@ class Faq_entries extends Model
         'keywords',
         'is_active',
     ];
+
+    protected $casts = [
+        'keywords' => 'array',
+        'is_active' => 'boolean',
+    ];
 }

@@ -8,6 +8,7 @@ use App\Services\MessageAssistantService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMessagesRequest;
 use App\Http\Requests\UpdateMessagesRequest;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Support\Facades\DB;
@@ -23,15 +24,26 @@ class MessagesController extends Controller implements HasMiddleware
     public static function middleware()
     {
         return [
-            new Middleware('auth:sanctum', except: ['index', 'show'])
+            new Middleware('auth:sanctum')
             ];
     }
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return Messages::all();
+        $validated = $request->validate([
+            'conversation_id' => ['required', 'integer', 'exists:conversations,id'],
+        ]);
+
+        $conversation = Conversations::query()->findOrFail($validated['conversation_id']);
+        Gate::authorize('view', $conversation);
+
+        return Messages::query()
+            ->where('conversation_id', $conversation->id)
+            ->with('user:id,name,email')
+            ->orderBy('created_at')
+            ->get();
     }
 
     /**
@@ -42,30 +54,46 @@ class MessagesController extends Controller implements HasMiddleware
         $fields = $request->validated();
         $conversation = Conversations::query()->findOrFail($fields['conversation_id']);
 
-        Gate::authorize('modify', $conversation);
+        Gate::authorize('sendMessage', $conversation);
 
-        [$userMessage, $assistantMessage] = DB::transaction(function () use ($conversation, $fields, $request) {
-            $userMessage = $conversation->messages()->create([
-                'sender_type' => 'user',
-                'sender_user_id' => $request->user()->id,
+        $currentUser = $request->user();
+        $senderType = $currentUser->role === 'helpdesk_agent' ? 'agent' : 'user';
+        $assistantMessage = null;
+        $needsHumanHandoff = false;
+
+        $createdMessage = DB::transaction(function () use ($conversation, $fields, $currentUser, $senderType, &$assistantMessage, &$needsHumanHandoff) {
+            $primaryMessage = $conversation->messages()->create([
+                'sender_type' => $senderType,
+                'sender_user_id' => $currentUser->id,
                 'content' => $fields['content'],
                 'message_type' => $fields['message_type'] ?? 'text',
             ]);
 
-            $assistantReply = $this->messageAssistantService->generateReply($fields['content']);
-            $assistantMessage = $conversation->messages()->create([
-                'sender_type' => 'bot',
-                'sender_user_id' => null,
-                'content' => $assistantReply,
-                'message_type' => 'text',
-            ]);
+            if (
+                $senderType === 'user'
+                && $conversation->status === Conversations::STATUS_BOT_ACTIVE
+            ) {
+                $assistantReply = $this->messageAssistantService->generateReplyResult($fields['content']);
+                $needsHumanHandoff = !$assistantReply['matched'];
 
-            return [$userMessage, $assistantMessage];
+                $assistantMessage = $conversation->messages()->create([
+                    'sender_type' => 'bot',
+                    'sender_user_id' => null,
+                    'content' => $assistantReply['content'],
+                    'message_type' => 'text',
+                ]);
+            } elseif ($senderType === 'user' && $conversation->status === Conversations::STATUS_WAITING_FOR_AGENT) {
+                $needsHumanHandoff = true;
+            }
+
+            return $primaryMessage;
         });
 
         return response()->json([
-            'message' => $userMessage,
+            'message' => $createdMessage,
             'assistant_message' => $assistantMessage,
+            'conversation_status' => $conversation->fresh()->status,
+            'needs_human_handoff' => $needsHumanHandoff,
         ], 201);
     }
 
@@ -74,6 +102,7 @@ class MessagesController extends Controller implements HasMiddleware
      */
     public function show(Messages $message)
     {
+        Gate::authorize('view', $message->conversation);
         return $message;
     }
 
