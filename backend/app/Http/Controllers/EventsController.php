@@ -23,7 +23,10 @@ class EventsController extends Controller implements HasMiddleware
      */
     public function index()
     {
-        return Events::all();
+        return Events::query()
+            ->with(['user:id,name,email'])
+            ->orderBy('occurrence_at')
+            ->get();
     }
 
     /**
@@ -31,39 +34,39 @@ class EventsController extends Controller implements HasMiddleware
      */
     public function store(StoreEventsRequest $request)
     {
-        $fields = $request->validate();
+        $fields = $request->validated();
         $event = $request->user()->events()->create($fields);
-        return  ['event' => $event];
+        return ['event' => $event->load('user:id,name,email')];
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Events $events)
+    public function show(Events $event)
     {
-        return $events;
+        return $event;
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateEventsRequest $request, Events $events)
+    public function update(UpdateEventsRequest $request, Events $event)
     {
-        Gate::authorize('modify', $events);
-        $fields = $request->validate();
+        Gate::authorize('modify', $event);
+        $fields = $request->validated();
 
-        $events->update($fields);
-        return $events;
+        $event->update($fields);
+        return $event->load('user:id,name,email');
 
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Events $events)
+    public function destroy(Events $event)
     {
-        Gate::authorize('modify', $events);
-        $events->delete();
+        Gate::authorize('modify', $event);
+        $event->delete();
 
         return [
             'message' => 'Event deleted successfully.'

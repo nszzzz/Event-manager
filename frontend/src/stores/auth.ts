@@ -1,12 +1,13 @@
 import { defineStore } from "pinia";
 import router from "@/router";
+import { normalizeUser, type AuthUser } from "@/lib/auth-user";
 type AuthErrors = Record<string, string[]>;
 
 
 export const useAuthStore = defineStore("authStore", {
     state: () => {
         return {
-            user: null,
+            user: null as AuthUser | null,
             twoFactorRequired: false,
             errors: {} as AuthErrors,
             errorMessage: "",
@@ -16,24 +17,30 @@ export const useAuthStore = defineStore("authStore", {
     actions: {
         async getUser() {
             const token = localStorage.getItem('token');
-            if (token) {
-                try {
-                    const res = await fetch('/api/user', {
-                        headers: {
-                            authorization: `Bearer ${token}`
-                        },
-                    });
-                    const data = await res.json();
-                    if (res.ok) {
-                        this.user = data.user;
-                        this.twoFactorRequired = data.two_factor_required ?? false;
-                    }
-                } catch (e) {
-                    // Backend unreachable - treat as not logged in
-                    this.user = null;
-                    this.twoFactorRequired = false;
-                }
+            if (!token) {
+                this.user = null;
+                this.twoFactorRequired = false;
+                return;
             }
+
+            try {
+                const res = await fetch('/api/user', {
+                    headers: {
+                        authorization: `Bearer ${token}`
+                    },
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    this.user = normalizeUser(data.user);
+                    this.twoFactorRequired = data.two_factor_required ?? false;
+                    return;
+                }
+            } catch (e) {
+                // Backend unreachable - treat as not logged in
+            }
+
+            this.user = null;
+            this.twoFactorRequired = false;
         },
         async authenticate(formData: { email: string, password: string }, apiRoute: string) {
             const res = await fetch(`/api/${apiRoute}`, {
@@ -54,7 +61,7 @@ export const useAuthStore = defineStore("authStore", {
             }
             else {
                 localStorage.setItem('token', data.token)
-                this.user = data.user;
+                this.user = normalizeUser(data.user);
                 this.twoFactorRequired = true;
                 this.errors = {};
                 this.errorMessage = "";
@@ -75,7 +82,7 @@ export const useAuthStore = defineStore("authStore", {
             const data = await res.json();
             if (res.ok) {
                 this.twoFactorRequired = false;
-                this.user = data.user;
+                this.user = normalizeUser(data.user);
                 router.push({ name: 'home' });
             } else {
                 this.errorMessage = data.message;
@@ -169,7 +176,6 @@ export const useAuthStore = defineStore("authStore", {
                 this.errorMessage = data.message || "An error occurred.";
                 return { ok: false, message: this.errorMessage };
             }
-
             return { ok: true, message: data.message as string };
         }
     }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref, type HTMLAttributes } from "vue"
+import { IconLoader2 } from "@tabler/icons-vue"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -40,28 +41,39 @@ const formData = reactive({
 
 const successMessage = ref("")
 const localError = ref("")
+const isSubmitting = ref(false)
 
 async function handleSubmit() {
+  if (isSubmitting.value) {
+    return
+  }
+
+  isSubmitting.value = true
   localError.value = ""
   successMessage.value = ""
 
   if (!formData.token || !formData.email) {
     localError.value = "Missing reset token or email."
+    isSubmitting.value = false
     return
   }
 
-  const result = await resetPassword({
-    token: formData.token,
-    email: formData.email,
-    password: formData.password,
-    password_confirmation: formData.password_confirmation,
-  })
+  try {
+    const result = await resetPassword({
+      token: formData.token,
+      email: formData.email,
+      password: formData.password,
+      password_confirmation: formData.password_confirmation,
+    })
 
-  if (result.ok) {
-    successMessage.value = result.message
-    setTimeout(() => {
-      router.push({ name: "login" })
-    }, 1200)
+    if (result.ok) {
+      successMessage.value = result.message
+      setTimeout(() => {
+        router.push({ name: "login" })
+      }, 1200)
+    }
+  } finally {
+    isSubmitting.value = false
   }
 }
 
@@ -92,6 +104,7 @@ function dismissError() {
                 id="email"
                 type="email"
                 required
+                :disabled="isSubmitting"
                 v-model="formData.email"
               />
             </Field>
@@ -103,6 +116,7 @@ function dismissError() {
                 id="password"
                 type="password"
                 required
+                :disabled="isSubmitting"
                 v-model="formData.password"
               />
             </Field>
@@ -114,6 +128,7 @@ function dismissError() {
                 id="password_confirmation"
                 type="password"
                 required
+                :disabled="isSubmitting"
                 v-model="formData.password_confirmation"
               />
               <FieldDescription v-if="localError" class="text-destructive">
@@ -124,13 +139,18 @@ function dismissError() {
               </FieldDescription>
             </Field>
             <Field>
-              <Button type="submit">
-                Reset password
+              <Button type="submit" :disabled="isSubmitting">
+                <IconLoader2 v-if="isSubmitting" class="size-4 animate-spin" />
+                {{ isSubmitting ? "Loading..." : "Reset password" }}
               </Button>
             </Field>
             <FieldDescription class="text-center">
               Back to
-              <RouterLink :to="{ name: 'login' }" class="underline underline-offset-4 hover:text-primary">
+              <RouterLink
+                :to="{ name: 'login' }"
+                class="underline underline-offset-4 hover:text-primary"
+                :class="{ 'pointer-events-none opacity-50': isSubmitting }"
+              >
                 login
               </RouterLink>
             </FieldDescription>

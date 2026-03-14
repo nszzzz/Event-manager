@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { reactive, type HTMLAttributes } from "vue"
+import { reactive, ref, type HTMLAttributes } from "vue"
 import { cn } from "@/lib/utils"
 import { Button } from '@/components/ui/button'
+import { IconLoader2 } from "@tabler/icons-vue"
 import {
   Card,
   CardContent,
@@ -32,6 +33,21 @@ const formData = reactive({
   password: "",
 })
 
+const isSubmitting = ref(false)
+
+async function handleSubmit() {
+  if (isSubmitting.value) {
+    return
+  }
+
+  isSubmitting.value = true
+  try {
+    await authenticate(formData, "login")
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
 function dismissError() {
   errorMessage.value = ""
 }
@@ -50,7 +66,7 @@ function dismissError() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form @submit.prevent="authenticate(formData, 'login')">
+        <form @submit.prevent="handleSubmit">
           <FieldGroup>
             <Field>
               <FieldLabel for="email">
@@ -61,6 +77,7 @@ function dismissError() {
                 type="email"
                 placeholder="m@example.com"
                 required
+                :disabled="isSubmitting"
                 v-model="formData.email"
               />
             </Field>
@@ -72,15 +89,17 @@ function dismissError() {
                 <RouterLink
                   :to="{ name: 'forgot-password' }"
                   class="ml-auto text-sm underline-offset-4 hover:underline"
+                  :class="{ 'pointer-events-none opacity-50': isSubmitting }"
                 >
                   Forgot your password?
                 </RouterLink>
               </div>
-              <Input id="password" type="password" required v-model="formData.password" />
+              <Input id="password" type="password" required :disabled="isSubmitting" v-model="formData.password" />
             </Field>
             <Field>
-              <Button type="submit">
-                Login
+              <Button type="submit" :disabled="isSubmitting">
+                <IconLoader2 v-if="isSubmitting" class="size-4 animate-spin" />
+                {{ isSubmitting ? "Loading..." : "Login" }}
               </Button>
             </Field>
           </FieldGroup>
