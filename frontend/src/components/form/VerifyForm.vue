@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from "vue"
+import { IconLoader2 } from "@tabler/icons-vue"
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -22,8 +23,8 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
 import ErrorPopup from '../ui/error-popup/ErrorPopup.vue'
-import { type HTMLAttributes } from 'vue'
 import { cn } from '@/lib/utils'
+import { type HTMLAttributes } from "vue"
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
@@ -35,15 +36,41 @@ const { verifyTwoFactor, resendCode } = authStore
 
 const otpValue = ref('')
 const resendMessage = ref('')
+const isVerifying = ref(false)
+const isResending = ref(false)
+
+const isBusy = computed(() => isVerifying.value || isResending.value)
 
 async function handleSubmit() {
-  await verifyTwoFactor(otpValue.value)
+  if (isBusy.value) {
+    return
+  }
+
+  isVerifying.value = true
+  try {
+    await verifyTwoFactor(otpValue.value)
+  } finally {
+    isVerifying.value = false
+  }
 }
 
 async function handleResend() {
-  const data = await resendCode()
-  resendMessage.value = data.message || 'Code resent!'
-  setTimeout(() => { resendMessage.value = '' }, 3000)
+  if (isBusy.value) {
+    return
+  }
+
+  isResending.value = true
+  resendMessage.value = ""
+
+  try {
+    const data = await resendCode()
+    resendMessage.value = data.message || "Code resent!"
+    setTimeout(() => {
+      resendMessage.value = ""
+    }, 3000)
+  } finally {
+    isResending.value = false
+  }
 }
 
 function dismissError() {
@@ -67,7 +94,14 @@ function dismissError() {
             <FieldLabel for="otp" class="sr-only">
               Verification code
             </FieldLabel>
-            <InputOTP id="otp" v-model="otpValue" :maxlength="6" class="justify-center" required>
+            <InputOTP
+              id="otp"
+              v-model="otpValue"
+              :maxlength="6"
+              class="justify-center"
+              :disabled="isBusy"
+              required
+            >
               <InputOTPGroup class="gap-2.5 *:data-[slot=input-otp-slot]:rounded-md *:data-[slot=input-otp-slot]:border">
                 <InputOTPSlot :index="0" />
                 <InputOTPSlot :index="1" />
@@ -81,12 +115,22 @@ function dismissError() {
               Enter the 6-digit code sent to your email.
             </FieldDescription>
           </Field>
-          <Button type="submit">
-            Verify
+          <Button type="submit" :disabled="isBusy || otpValue.length !== 6">
+            <IconLoader2 v-if="isVerifying" class="size-4 animate-spin" />
+            {{ isVerifying ? "Verifying..." : "Verify" }}
           </Button>
           <FieldDescription class="text-center">
             Didn't receive the code?
-            <a href="#" @click.prevent="handleResend" class="underline underline-offset-4 hover:text-primary">Resend</a>
+            <Button
+              type="button"
+              variant="link"
+              class="h-auto p-0 align-baseline underline-offset-4"
+              :disabled="isBusy"
+              @click="handleResend"
+            >
+              <IconLoader2 v-if="isResending" class="size-4 animate-spin" />
+              {{ isResending ? "Resending..." : "Resend" }}
+            </Button>
           </FieldDescription>
           <p v-if="resendMessage" class="text-center text-sm text-green-600">{{ resendMessage }}</p>
         </FieldGroup>

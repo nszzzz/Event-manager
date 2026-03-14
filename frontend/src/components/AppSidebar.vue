@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import {
   IconHelp,
-  IconInnerShadowTop,
   IconListDetails,
   IconUsers,
 } from "@tabler/icons-vue"
 import { computed } from "vue"
 
+import AppBrand from "@/components/AppBrand.vue"
 import NavMain from '@/components/NavMain.vue'
 import NavUser from '@/components/NavUser.vue'
 import {
@@ -14,9 +14,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import type { UserRole } from "@/lib/auth-user"
 
@@ -72,20 +69,8 @@ function handleSelect(section: string) {
 
 <template>
   <Sidebar collapsible="offcanvas">
-    <SidebarHeader>
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            as-child
-            class="data-[slot=sidebar-menu-button]:!p-1.5"
-          >
-            <a href="#" @click.prevent>
-              <IconInnerShadowTop class="!size-5" />
-              <span class="text-base font-semibold">Event Manager</span>
-            </a>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
+    <SidebarHeader class="px-2 py-2">
+      <AppBrand class="px-2 text-base font-semibold" />
     </SidebarHeader>
     <SidebarContent>
       <NavMain

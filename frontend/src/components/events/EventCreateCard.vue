@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { IconPlus } from "@tabler/icons-vue"
 
 const props = defineProps<{
   title: string
@@ -45,7 +44,6 @@ function handleDescriptionInput(event: Event) {
   <Card>
     <CardHeader>
       <CardTitle class="flex items-center gap-2">
-        <IconPlus class="size-4" />
         Create Event
       </CardTitle>
       <CardDescription>
