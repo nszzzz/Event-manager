@@ -291,6 +291,7 @@ function matchesSectionFilters(event: EventItem, search: string, month: string) 
       empty-text="No past events found."
       :is-loading="isLoading"
       :load-error="loadError"
+      layout="grid"
       :show-past-badge="true"
       :search-query="pastSearchQuery"
       :month-filter="pastMonthFilter"

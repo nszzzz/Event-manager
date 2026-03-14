@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { computed, ref, watch } from "vue"
+import { IconChevronLeft, IconChevronRight } from "@tabler/icons-vue"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -26,6 +29,7 @@ const props = withDefaults(defineProps<{
   skeletonCount?: number
   searchQuery?: string
   monthFilter?: string
+  pageSize?: number
 }>(), {
   isLoading: false,
   loadError: "",
@@ -34,9 +38,10 @@ const props = withDefaults(defineProps<{
   clickable: true,
   showDeleteAction: false,
   deletingIds: () => [],
-  skeletonCount: 6,
+  skeletonCount: 9,
   searchQuery: "",
   monthFilter: "",
+  pageSize: 9,
 })
 
 const emit = defineEmits<{
@@ -58,6 +63,55 @@ function handleSearchUpdate(value: string | number) {
 function handleMonthUpdate(value: string | number) {
   emit("update:monthFilter", String(value))
 }
+
+const currentPage = ref(1)
+
+const resolvedPageSize = computed(() => Math.max(1, props.pageSize))
+
+const totalPages = computed(() => {
+  return Math.max(1, Math.ceil(props.events.length / resolvedPageSize.value))
+})
+
+const paginatedEvents = computed(() => {
+  const startIndex = (currentPage.value - 1) * resolvedPageSize.value
+  const endIndex = startIndex + resolvedPageSize.value
+  return props.events.slice(startIndex, endIndex)
+})
+
+const canGoPrevious = computed(() => currentPage.value > 1)
+const canGoNext = computed(() => currentPage.value < totalPages.value)
+
+function goPrevious() {
+  if (!canGoPrevious.value) {
+    return
+  }
+
+  currentPage.value -= 1
+}
+
+function goNext() {
+  if (!canGoNext.value) {
+    return
+  }
+
+  currentPage.value += 1
+}
+
+watch(
+  () => [props.searchQuery, props.monthFilter] as const,
+  () => {
+    currentPage.value = 1
+  },
+)
+
+watch(
+  () => [props.events.length, props.pageSize] as const,
+  () => {
+    if (currentPage.value > totalPages.value) {
+      currentPage.value = totalPages.value
+    }
+  },
+)
 </script>
 
 <template>
@@ -116,7 +170,7 @@ function handleMonthUpdate(value: string | number) {
       </div>
       <div v-else :class="props.layout === 'grid' ? 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3' : 'space-y-3'">
         <EventListItem
-          v-for="event in props.events"
+          v-for="event in paginatedEvents"
           :key="`${props.title}-${event.id}`"
           :event="event"
           :show-past-badge="props.showPastBadge"
@@ -126,6 +180,25 @@ function handleMonthUpdate(value: string | number) {
           @open-details="emit('openDetails', $event)"
           @delete="emit('delete', $event)"
         />
+      </div>
+
+      <div
+        v-if="!props.isLoading && !props.loadError && props.events.length > 0 && totalPages > 1"
+        class="mt-4 flex items-center justify-between gap-2 border-t pt-4"
+      >
+        <p class="text-xs text-muted-foreground">
+          Page {{ currentPage }} / {{ totalPages }}
+        </p>
+        <div class="flex items-center gap-2">
+          <Button type="button" variant="outline" size="sm" :disabled="!canGoPrevious" @click="goPrevious">
+            <IconChevronLeft class="size-4" />
+            Previous
+          </Button>
+          <Button type="button" variant="outline" size="sm" :disabled="!canGoNext" @click="goNext">
+            Next
+            <IconChevronRight class="size-4" />
+          </Button>
+        </div>
       </div>
     </CardContent>
   </Card>
