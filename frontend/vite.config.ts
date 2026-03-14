@@ -18,6 +18,16 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
+    port: 5173,
+    strictPort: true,
+    watch: {
+      usePolling: process.env.CHOKIDAR_USEPOLLING === 'true',
+      interval: Number(process.env.CHOKIDAR_INTERVAL ?? 300),
+    },
+    hmr: {
+      clientPort: Number(process.env.VITE_HMR_CLIENT_PORT ?? 5173),
+    },
     proxy: {
       '/api': {
         target: 'http://web:80',

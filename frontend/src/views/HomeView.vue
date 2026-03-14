@@ -2,6 +2,7 @@
 import { IconCalendarEvent, IconHelpCircle, IconUsers } from "@tabler/icons-vue"
 import { computed, onMounted, ref, watch } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
+import EventsPanel from "@/components/EventsPanel.vue"
 import {
   SidebarInset,
   SidebarProvider,
@@ -100,9 +101,9 @@ function handleSectionChange(section: SectionKey) {
         </div>
       </header>
 
-      <section class="flex flex-1 p-4 md:p-6">
+      <section class="flex min-h-0 flex-1 p-4 md:p-6">
         <div
-          class="flex w-full flex-col rounded-2xl border border-border/70 p-6 shadow-sm"
+          class="flex min-h-0 w-full flex-col rounded-2xl border border-border/70 p-6 shadow-sm"
           :style="panelStyle"
         >
           <h1 class="text-2xl font-semibold tracking-tight">
@@ -111,16 +112,14 @@ function handleSectionChange(section: SectionKey) {
 
           <div
             v-if="activeSection === 'events'"
-            class="mt-6 flex-1 rounded-xl border border-dashed border-border/80 bg-background/70 p-6"
+            class="mt-6 min-h-0 flex-1 overflow-y-auto pr-1"
           >
-            <p class="text-sm text-muted-foreground">
-              Events content placeholder. We will render dynamic event data here from the backend next.
-            </p>
+            <EventsPanel />
           </div>
 
           <div
             v-else-if="activeSection === 'help'"
-            class="mt-6 flex-1 rounded-xl border border-dashed border-border/80 bg-background/70 p-6"
+            class="mt-6 min-h-0 flex-1 overflow-y-auto rounded-xl border border-dashed border-border/80 bg-background/70 p-6"
           >
             <p class="text-sm text-muted-foreground">
               Help content placeholder.
@@ -129,7 +128,7 @@ function handleSectionChange(section: SectionKey) {
 
           <div
             v-else
-            class="mt-6 flex-1 rounded-xl border border-dashed border-border/80 bg-background/70 p-6"
+            class="mt-6 min-h-0 flex-1 overflow-y-auto rounded-xl border border-dashed border-border/80 bg-background/70 p-6"
           >
             <p class="text-sm text-muted-foreground">
               Helpdesk user chat queue placeholder.

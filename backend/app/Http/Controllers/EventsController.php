@@ -23,7 +23,10 @@ class EventsController extends Controller implements HasMiddleware
      */
     public function index()
     {
-        return Events::all();
+        return Events::query()
+            ->with(['user:id,name,email'])
+            ->orderBy('occurrence_at')
+            ->get();
     }
 
     /**
@@ -31,9 +34,9 @@ class EventsController extends Controller implements HasMiddleware
      */
     public function store(StoreEventsRequest $request)
     {
-        $fields = $request->validate();
+        $fields = $request->validated();
         $event = $request->user()->events()->create($fields);
-        return  ['event' => $event];
+        return ['event' => $event->load('user:id,name,email')];
     }
 
     /**
@@ -50,10 +53,10 @@ class EventsController extends Controller implements HasMiddleware
     public function update(UpdateEventsRequest $request, Events $events)
     {
         Gate::authorize('modify', $events);
-        $fields = $request->validate();
+        $fields = $request->validated();
 
         $events->update($fields);
-        return $events;
+        return $events->load('user:id,name,email');
 
     }
 
