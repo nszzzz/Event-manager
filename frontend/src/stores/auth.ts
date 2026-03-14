@@ -104,6 +104,73 @@ export const useAuthStore = defineStore("authStore", {
             this.twoFactorRequired = false;
             localStorage.removeItem('token');
             router.push({ name: 'login' });
+        },
+        async forgotPassword(email: string) {
+            this.errorMessage = "";
+            this.errors = {};
+
+            const res = await fetch('/api/forgot-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = await res.json();
+
+            if (data.errors) {
+                this.errors = data.errors as AuthErrors;
+                this.errorMessage = Object.values(this.errors)
+                    .flat()
+                    .filter((msg) => typeof msg === "string" && msg.trim() !== "")
+                    .join(", ");
+
+                return { ok: false, message: this.errorMessage };
+            }
+
+            if (!res.ok) {
+                this.errorMessage = data.message || "An error occurred.";
+                return { ok: false, message: this.errorMessage };
+            }
+
+            return { ok: true, message: data.message as string };
+        },
+        async resetPassword(formData: {
+            token: string;
+            email: string;
+            password: string;
+            password_confirmation: string;
+        }) {
+            this.errorMessage = "";
+            this.errors = {};
+
+            const res = await fetch('/api/reset-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
+
+            const data = await res.json();
+
+            if (data.errors) {
+                this.errors = data.errors as AuthErrors;
+                this.errorMessage = Object.values(this.errors)
+                    .flat()
+                    .filter((msg) => typeof msg === "string" && msg.trim() !== "")
+                    .join(", ");
+
+                return { ok: false, message: this.errorMessage };
+            }
+
+            if (!res.ok) {
+                this.errorMessage = data.message || "An error occurred.";
+                return { ok: false, message: this.errorMessage };
+            }
+
+            return { ok: true, message: data.message as string };
         }
     }
 });

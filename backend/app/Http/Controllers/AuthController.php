@@ -3,12 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\AuthForgotPasswordRequest;
 use App\Http\Requests\Auth\AuthRegisterRequest;
 use App\Http\Requests\Auth\AuthLoginRequest;
+use App\Http\Requests\Auth\AuthResetPasswordRequest;
 use App\Models\User;
 use App\Notifications\TwoFactorCodeNotification;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -54,5 +59,41 @@ class AuthController extends Controller
         return [
             'message' => 'You are logged out.'
         ];
+    }
+
+    public function forgotPassword(AuthForgotPasswordRequest $request)
+    {
+        Password::sendResetLink($request->only('email'));
+
+        return response()->json([
+            'message' => 'If the account exists, a password reset link has been sent.',
+        ]);
+    }
+
+    public function resetPassword(AuthResetPasswordRequest $request)
+    {
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password): void {
+                $user->forceFill([
+                    'password' => $password,
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                $user->tokens()->delete();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return response()->json([
+                'message' => __($status),
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Password has been reset successfully.',
+        ]);
     }
 }

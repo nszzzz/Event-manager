@@ -1,20 +1,21 @@
 <script setup lang="ts">
-import { reactive, type HTMLAttributes } from "vue"
+import { reactive, ref, type HTMLAttributes } from "vue"
 import { cn } from "@/lib/utils"
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
+} from "@/components/ui/card"
 import {
   Field,
+  FieldDescription,
   FieldGroup,
   FieldLabel,
-} from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
 import { useAuthStore } from "@/stores/auth"
 import { storeToRefs } from "pinia"
 import ErrorPopup from "../ui/error-popup/ErrorPopup.vue"
@@ -25,17 +26,26 @@ const props = defineProps<{
 
 const authStore = useAuthStore()
 const { errorMessage } = storeToRefs(authStore)
-const { authenticate } = authStore
+const { forgotPassword } = authStore
 
 const formData = reactive({
   email: "",
-  password: "",
 })
+
+const successMessage = ref("")
+
+async function handleSubmit() {
+  successMessage.value = ""
+  const result = await forgotPassword(formData.email)
+
+  if (result.ok) {
+    successMessage.value = result.message
+  }
+}
 
 function dismissError() {
   errorMessage.value = ""
 }
-
 </script>
 
 <template>
@@ -43,14 +53,14 @@ function dismissError() {
     <Card>
       <CardHeader class="text-center">
         <CardTitle class="text-xl">
-          Welcome back
+          Password reset
         </CardTitle>
         <CardDescription>
-          Login with your email and password
+          Enter your email and we will send a reset link.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form @submit.prevent="authenticate(formData, 'login')">
+        <form @submit.prevent="handleSubmit">
           <FieldGroup>
             <Field>
               <FieldLabel for="email">
@@ -63,33 +73,28 @@ function dismissError() {
                 required
                 v-model="formData.email"
               />
-            </Field>
-            <Field>
-              <div class="flex items-center">
-                <FieldLabel for="password">
-                  Password
-                </FieldLabel>
-                <RouterLink
-                  :to="{ name: 'forgot-password' }"
-                  class="ml-auto text-sm underline-offset-4 hover:underline"
-                >
-                  Forgot your password?
-                </RouterLink>
-              </div>
-              <Input id="password" type="password" required v-model="formData.password" />
+              <FieldDescription v-if="successMessage" class="text-green-600">
+                {{ successMessage }}
+              </FieldDescription>
             </Field>
             <Field>
               <Button type="submit">
-                Login
+                Send reset link
               </Button>
             </Field>
+            <FieldDescription class="text-center">
+              Back to
+              <RouterLink :to="{ name: 'login' }" class="underline underline-offset-4 hover:text-primary">
+                login
+              </RouterLink>
+            </FieldDescription>
           </FieldGroup>
         </form>
       </CardContent>
     </Card>
     <ErrorPopup
       v-if="errorMessage"
-      title="Login failed"
+      title="Request failed"
       :message="errorMessage"
       @close="dismissError"
     />
