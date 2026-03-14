@@ -31,18 +31,19 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return [
-                'message' => 'The provided credentials are incorrect'
-            ];
+            return response()->json([
+                'message' => 'The provided credentials are incorrect',
+            ], 401);
         }
 
-        $user->createToken($user->name);
+        $token = $user->createToken($user->name);
 
         $user->regenerateTwoFactorCode();
         $user->notify(new TwoFactorCodeNotification());
 
         return [
-            'message' => 'A two factor code has been sent to your email address.',
+            'user' => $user,
+            'token' => $token->plainTextToken,
         ];
     }
 

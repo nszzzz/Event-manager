@@ -17,8 +17,11 @@ class TwoFactorMiddleware
     {
         $user = auth('sanctum')->user() ?? $request->user();
 
-        if ($user && $user->two_factor_expires_at) {
-            return redirect()->route('verify');
+        if ($user && $user->two_factor_code !== null) {
+            return response()->json([
+                'message' => 'Two factor authentication required.',
+                'two_factor_required' => true,
+            ], 403);
         }
         return $next($request);
     }

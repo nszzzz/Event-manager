@@ -17,18 +17,24 @@ import {
 import { Input } from '@/components/ui/input'
 import { useAuthStore } from "@/stores/auth"
 import { storeToRefs } from "pinia"
+import ErrorPopup from "../ui/error-popup/ErrorPopup.vue"
 
 const props = defineProps<{
   class?: HTMLAttributes["class"]
 }>()
 
-const { errors } = storeToRefs(useAuthStore())
-const { authenticate } = useAuthStore()
+const authStore = useAuthStore()
+const { errorMessage } = storeToRefs(authStore)
+const { authenticate } = authStore
 
 const formData = reactive({
   email: "",
   password: "",
 })
+
+function dismissError() {
+  errorMessage.value = ""
+}
 
 </script>
 
@@ -71,9 +77,6 @@ const formData = reactive({
                 </a>
               </div>
               <Input id="password" type="password" required v-model="formData.password" />
-              <p v-if="errors.loginError" class="mt-2 text-sm text-destructive">
-                {{ errors.loginError }}
-              </p>
             </Field>
             <Field>
               <Button type="submit">
@@ -84,5 +87,11 @@ const formData = reactive({
         </form>
       </CardContent>
     </Card>
+    <ErrorPopup
+      v-if="errorMessage"
+      title="Login failed"
+      :message="errorMessage"
+      @close="dismissError"
+    />
   </div>
 </template>

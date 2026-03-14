@@ -8,11 +8,6 @@ use Illuminate\Http\Request;
 
 class TwoFactorController extends Controller
 {
-    public function verify()
-    {
-        return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/verify');
-    }
-
     public function resend(Request $request)
     {
         $user = auth('sanctum')->user() ?? $request->user();
@@ -24,7 +19,7 @@ class TwoFactorController extends Controller
         ]);
     }
 
-    public function verifyPost(Request $request)
+    public function verify(Request $request)
     {
         $request->validate([
             'code' => 'integer|required',
@@ -46,6 +41,9 @@ class TwoFactorController extends Controller
 
         $user->resetTwoFactorCode();
 
-        return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/dashboard');
+        return response()->json([
+            'message' => 'Two factor authentication verified.',
+            'user' => $user,
+        ]);
     }
 }
