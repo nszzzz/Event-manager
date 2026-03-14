@@ -20,7 +20,7 @@ class Messages extends Model
 
     public function conversation()
     {
-        return $this->belongsTo(Conversations::class);
+        return $this->belongsTo(Conversations::class, 'conversation_id');
     }
 
     public function user()

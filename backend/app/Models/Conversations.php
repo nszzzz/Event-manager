@@ -36,6 +36,6 @@ class Conversations extends Model
 
     public function messages()
     {
-        return $this->hasMany(Messages::class);
+        return $this->hasMany(Messages::class, 'conversation_id');
     }
 }
