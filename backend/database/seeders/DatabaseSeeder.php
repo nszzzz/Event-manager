@@ -29,5 +29,9 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password'),
             'role' => 'helpdesk_agent',
         ])->save();
+
+        $this->call([
+            FaqEntriesSeeder::class,
+        ]);
     }
 }

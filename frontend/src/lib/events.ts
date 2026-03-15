@@ -14,11 +14,18 @@ export interface EventItem {
 }
 
 export function toIsoString(localDateTime: string) {
-  const parsed = new Date(localDateTime)
-  if (Number.isNaN(parsed.getTime())) {
-    return localDateTime
+  const value = localDateTime.trim()
+  if (value === "") {
+    return value
   }
-  return parsed.toISOString()
+
+  // `datetime-local` gives a local civil datetime without timezone.
+  // Keep local time to avoid UTC conversion shifts (e.g. -1 hour in CET).
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+    return `${value}:00`
+  }
+
+  return value
 }
 
 export function toTimestamp(dateValue: string) {

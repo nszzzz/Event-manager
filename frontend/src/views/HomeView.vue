@@ -3,6 +3,8 @@ import { computed, onMounted, ref, watch } from "vue"
 import { IconHelp, IconListDetails, IconUsers } from "@tabler/icons-vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import EventsPanel from "@/components/EventsPanel.vue"
+import HelpPanel from "@/components/HelpPanel.vue"
+import HelpdeskChatsPanel from "@/components/HelpdeskChatsPanel.vue"
 import {
   SidebarInset,
   SidebarProvider,
@@ -65,13 +67,13 @@ function handleSectionChange(section: SectionKey) {
 </script>
 
 <template>
-  <SidebarProvider>
+  <SidebarProvider class="h-svh overflow-hidden">
     <AppSidebar
       :user="user"
       :active-section="activeSection"
       @section-change="handleSectionChange"
     />
-    <SidebarInset>
+    <SidebarInset class="min-h-0 overflow-hidden">
       <header class="flex h-16 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-sm">
         <SidebarTrigger />
         <div class="flex items-center gap-2 text-sm font-medium">
@@ -82,27 +84,13 @@ function handleSectionChange(section: SectionKey) {
         </div>
       </header>
 
-      <section class="flex min-h-0 flex-1 p-4 md:p-6">
-        <div class="flex min-h-0 w-full flex-col">
+      <section class="flex min-h-0 flex-1 overflow-hidden p-4 md:p-6">
+        <div class="flex h-full min-h-0 w-full flex-col overflow-hidden">
           <EventsPanel v-if="activeSection === 'events'"/>
 
-          <div
-            v-else-if="activeSection === 'help'"
-            class="min-h-0 flex-1 overflow-y-auto rounded-xl border border-dashed border-border/80 bg-background/70 p-6"
-          >
-            <p class="text-sm text-muted-foreground">
-              Help content placeholder2.
-            </p>
-          </div>
+          <HelpPanel v-else-if="activeSection === 'help'" />
 
-          <div
-            v-else
-            class="min-h-0 flex-1 overflow-y-auto rounded-xl border border-dashed border-border/80 bg-background/70 p-6"
-          >
-            <p class="text-sm text-muted-foreground">
-              Helpdesk user chat queue placeholder.
-            </p>
-          </div>
+          <HelpdeskChatsPanel v-else />
         </div>
       </section>
     </SidebarInset>
