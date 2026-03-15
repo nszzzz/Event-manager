@@ -148,6 +148,56 @@ class ConversationsController extends Controller implements HasMiddleware
     }
 
     /**
+     * Conversation owner resolves the conversation after receiving a useful bot answer.
+     */
+    public function resolve(Request $request, Conversations $conversation)
+    {
+        Gate::authorize('resolve', $conversation);
+
+        $owner = $request->user();
+
+        $resolvedConversation = DB::transaction(function () use ($conversation, $owner) {
+            $lockedConversation = Conversations::query()
+                ->whereKey($conversation->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedConversation->status === Conversations::STATUS_CLOSED) {
+                throw ValidationException::withMessages([
+                    'conversation' => ['This conversation is already closed.'],
+                ]);
+            }
+
+            if ($lockedConversation->status === Conversations::STATUS_AGENT_ACTIVE) {
+                throw ValidationException::withMessages([
+                    'conversation' => ['This conversation is already handled by an agent.'],
+                ]);
+            }
+
+            $lockedConversation->update([
+                'status' => Conversations::STATUS_CLOSED,
+                'closed_at' => now(),
+            ]);
+
+            $lockedConversation->messages()->create([
+                'sender_type' => 'system',
+                'sender_user_id' => $owner->id,
+                'content' => sprintf('Conversation resolved by %s.', $owner->name),
+                'message_type' => 'system',
+            ]);
+
+            return $lockedConversation->fresh();
+        });
+
+        return response()->json([
+            'conversation' => $resolvedConversation->load([
+                'user:id,name,email',
+                'assignedAgent:id,name,email',
+            ]),
+        ]);
+    }
+
+    /**
      * Helpdesk agent accepts a queued conversation.
      */
     public function accept(Request $request, Conversations $conversation)

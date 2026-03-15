@@ -41,6 +41,8 @@ Route::middleware(['auth:sanctum', 'two.factor'])->group(function () {
     Route::apiResource('messages', MessagesController::class)->only(['index', 'store', 'show']);
 
     Route::post('/conversations/{conversation}/request-agent', [ConversationsController::class, 'requestAgent']);
+    Route::post('/conversations/{conversation}/resolve', [ConversationsController::class, 'resolve'])
+        ->middleware('role:user,admin');
     Route::post('/conversations/{conversation}/accept', [ConversationsController::class, 'accept'])
         ->middleware('role:helpdesk_agent');
     Route::post('/conversations/{conversation}/close', [ConversationsController::class, 'close'])

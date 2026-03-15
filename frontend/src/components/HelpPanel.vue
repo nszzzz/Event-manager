@@ -13,6 +13,7 @@ const {
   isCreatingConversation,
   isSendingMessage,
   isRequestingAgent,
+  isResolvingConversation,
   listError,
   chatError,
   composerError,
@@ -56,6 +57,7 @@ const {
       :show-bot-decision-actions="showBotDecisionActions"
       :latest-bot-message-id="latestBotMessageId"
       :is-requesting-agent="isRequestingAgent"
+      :is-resolving-conversation="isResolvingConversation"
       :active-agent-name="activeAgentName"
       :message-input="messageInput"
       :is-sending-message="isSendingMessage"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from "vue"
-import { IconArrowUpRight, IconCheck, IconHeadset } from "@tabler/icons-vue"
+import { IconCheck, IconHeadset, IconSend2 } from "@tabler/icons-vue"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -30,6 +30,7 @@ const props = defineProps<{
   showBotDecisionActions: boolean
   latestBotMessageId: string
   isRequestingAgent: boolean
+  isResolvingConversation: boolean
   activeAgentName: string
   messageInput: string
   isSendingMessage: boolean
@@ -121,14 +122,20 @@ function handleSendHotkey() {
             v-if="showBotDecisionActions && String(message.id) === latestBotMessageId"
             class="ml-9 flex flex-wrap items-center gap-2 rounded-xl border bg-muted/25 p-2"
           >
-            <Button type="button" size="sm" variant="outline" @click="emit('acknowledgeBotReply')">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              :disabled="isResolvingConversation || isRequestingAgent"
+              @click="emit('acknowledgeBotReply')"
+            >
               <IconCheck class="size-4" />
-              I Understand
+              {{ isResolvingConversation ? "Closing..." : "I Understand" }}
             </Button>
             <Button
               type="button"
               size="sm"
-              :disabled="isRequestingAgent"
+              :disabled="isRequestingAgent || isResolvingConversation"
               @click="emit('requestHumanAgent')"
             >
               <IconHeadset class="size-4" />
@@ -155,7 +162,7 @@ function handleSendHotkey() {
           :disabled="!selectedConversation || isSendingMessage || !canSendMessage"
           @click="emit('sendMessage')"
         >
-          <IconArrowUpRight class="size-4" />
+          <IconSend2 class="size-4" />
           {{ isSendingMessage ? "Sending..." : "Send" }}
         </Button>
       </div>

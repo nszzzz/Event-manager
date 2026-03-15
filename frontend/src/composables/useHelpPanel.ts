@@ -20,6 +20,7 @@ export function useHelpPanel() {
   const isCreatingConversation = ref(false)
   const isSendingMessage = ref(false)
   const isRequestingAgent = ref(false)
+  const isResolvingConversation = ref(false)
 
   const listError = ref("")
   const chatError = ref("")
@@ -28,7 +29,6 @@ export function useHelpPanel() {
 
   const newConversationSubject = ref("")
   const messageInput = ref("")
-  const acknowledgedBotMessageIdByConversation = ref<Record<string, string>>({})
 
   let pollingTimer: ReturnType<typeof setInterval> | null = null
 
@@ -61,9 +61,7 @@ export function useHelpPanel() {
     if (!selectedConversation.value) return false
     if (selectedConversation.value.status !== "bot_active") return false
     if (!latestBotMessageId.value) return false
-
-    const key = String(selectedConversation.value.id)
-    return acknowledgedBotMessageIdByConversation.value[key] !== latestBotMessageId.value
+    return true
   })
 
   const canSendMessage = computed(() => {
@@ -299,12 +297,38 @@ export function useHelpPanel() {
     }
   }
 
-  function acknowledgeBotReply() {
+  async function acknowledgeBotReply() {
     if (!selectedConversation.value || !latestBotMessageId.value) return
+    if (selectedConversation.value.status !== "bot_active") return
 
-    acknowledgedBotMessageIdByConversation.value = {
-      ...acknowledgedBotMessageIdByConversation.value,
-      [String(selectedConversation.value.id)]: latestBotMessageId.value,
+    const conversationId = String(selectedConversation.value.id)
+    isResolvingConversation.value = true
+    composerError.value = ""
+
+    try {
+      const res = await fetch(`/api/conversations/${conversationId}/resolve`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        composerError.value = extractApiError(data, "Could not close conversation.")
+        return
+      }
+
+      const conversation = data?.conversation as ChatConversation | undefined
+      if (conversation) {
+        selectedConversation.value = conversation
+        upsertConversation(conversation)
+      }
+
+      await fetchConversationDetail(conversationId, { silent: true })
+      await fetchConversations({ silent: true })
+    } catch {
+      composerError.value = "Could not close conversation."
+    } finally {
+      isResolvingConversation.value = false
     }
   }
 
@@ -350,6 +374,7 @@ export function useHelpPanel() {
     isCreatingConversation,
     isSendingMessage,
     isRequestingAgent,
+    isResolvingConversation,
     listError,
     chatError,
     composerError,

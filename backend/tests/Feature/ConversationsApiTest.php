@@ -190,6 +190,32 @@ class ConversationsApiTest extends TestCase
         ]);
     }
 
+    public function test_owner_can_resolve_conversation_after_bot_answer(): void
+    {
+        $owner = $this->createUser();
+        $conversation = Conversations::query()->create([
+            'user_id' => $owner->id,
+            'channel' => 'web_chat',
+            'status' => Conversations::STATUS_BOT_ACTIVE,
+            'subject' => 'Resolved by user',
+        ]);
+
+        Sanctum::actingAs($owner);
+
+        $response = $this->postJson("/api/conversations/{$conversation->id}/resolve");
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('conversation.status', Conversations::STATUS_CLOSED);
+
+        $this->assertNotNull($conversation->fresh()->closed_at);
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $conversation->id,
+            'sender_type' => 'system',
+            'message_type' => 'system',
+        ]);
+    }
+
     public function test_helpdesk_queue_endpoint_returns_waiting_conversations(): void
     {
         $owner = $this->createUser();

@@ -68,6 +68,23 @@ class ConversationsPolicy
         return Response::allow();
     }
 
+    public function resolve(User $user, Conversations $conversation): Response
+    {
+        if ((int) $user->id !== (int) $conversation->user_id) {
+            return Response::deny('Only the conversation owner can resolve this conversation.');
+        }
+
+        if ($conversation->status === Conversations::STATUS_CLOSED) {
+            return Response::deny('This conversation is already closed.');
+        }
+
+        if ($conversation->status === Conversations::STATUS_AGENT_ACTIVE) {
+            return Response::deny('An assigned agent must close this conversation.');
+        }
+
+        return Response::allow();
+    }
+
     public function accept(User $user, Conversations $conversation): Response
     {
         if ($user->role !== 'helpdesk_agent') {
