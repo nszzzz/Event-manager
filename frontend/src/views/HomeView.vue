@@ -67,13 +67,13 @@ function handleSectionChange(section: SectionKey) {
 </script>
 
 <template>
-  <SidebarProvider>
+  <SidebarProvider class="h-svh overflow-hidden">
     <AppSidebar
       :user="user"
       :active-section="activeSection"
       @section-change="handleSectionChange"
     />
-    <SidebarInset>
+    <SidebarInset class="min-h-0 overflow-hidden">
       <header class="flex h-16 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-sm">
         <SidebarTrigger />
         <div class="flex items-center gap-2 text-sm font-medium">
@@ -84,8 +84,8 @@ function handleSectionChange(section: SectionKey) {
         </div>
       </header>
 
-      <section class="flex min-h-0 flex-1 p-4 md:p-6">
-        <div class="flex min-h-0 w-full flex-col">
+      <section class="flex min-h-0 flex-1 overflow-hidden p-4 md:p-6">
+        <div class="flex h-full min-h-0 w-full flex-col overflow-hidden">
           <EventsPanel v-if="activeSection === 'events'"/>
 
           <HelpPanel v-else-if="activeSection === 'help'" />

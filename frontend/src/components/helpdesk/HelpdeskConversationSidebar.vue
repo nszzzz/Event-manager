@@ -26,7 +26,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <Card class="min-h-0 flex flex-col">
+  <Card class="h-full min-h-0 flex flex-col overflow-hidden">
     <CardHeader>
       <CardTitle>Helpdesk Conversations</CardTitle>
       <CardDescription>

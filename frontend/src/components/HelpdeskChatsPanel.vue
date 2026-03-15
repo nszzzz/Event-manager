@@ -30,7 +30,7 @@ const {
 </script>
 
 <template>
-  <div class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
+  <div class="grid h-full min-h-0 flex-1 gap-4 overflow-hidden xl:grid-cols-[360px_minmax(0,1fr)]">
     <HelpdeskConversationSidebar
       :is-loading="isLoadingLists"
       :error="listError"

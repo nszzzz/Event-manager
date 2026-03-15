@@ -36,7 +36,7 @@ function handleSubjectUpdate(value: string | number) {
 </script>
 
 <template>
-  <Card class="min-h-0 flex flex-col">
+  <Card class="h-full min-h-0 flex flex-col overflow-hidden">
     <CardHeader>
       <CardTitle>Help Conversations</CardTitle>
       <CardDescription>

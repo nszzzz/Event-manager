@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import HelpMessageBubble from "@/components/help/HelpMessageBubble.vue"
@@ -55,14 +55,17 @@ watch(
   },
 )
 
-function handleMessageInput(event: Event) {
-  const target = event.target as HTMLTextAreaElement
-  emit("update:messageInput", target.value)
+function handleInputUpdate(value: string | number) {
+  emit("update:messageInput", String(value))
+}
+
+function handleSendHotkey() {
+  emit("sendMessage")
 }
 </script>
 
 <template>
-  <Card class="min-h-0 flex flex-col">
+  <Card class="h-full min-h-0 flex flex-col overflow-hidden">
     <CardHeader v-if="selectedConversation">
       <div class="flex items-start justify-between gap-3">
         <div>
@@ -89,7 +92,7 @@ function handleMessageInput(event: Event) {
 
     <CardContent
       ref="messageContainerRef"
-      class="help-chat-scroll min-h-0 flex-1 space-y-3 overflow-y-auto"
+      class="help-chat-scroll min-h-0 flex-1 space-y-3 overflow-y-auto pr-1"
     >
       <div v-if="!selectedConversation" class="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">
         Select or create a conversation to start chatting.
@@ -136,21 +139,19 @@ function handleMessageInput(event: Event) {
       </template>
     </CardContent>
 
-    <div class="border-t p-4">
-      <div class="flex items-end gap-2">
-        <div class="flex-1 space-y-1">
-          <Label for="help-message-input">Your Message</Label>
-          <textarea
-            id="help-message-input"
-            :value="messageInput"
-            class="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 min-h-20 w-full resize-y rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
-            placeholder="Type your question..."
-            :disabled="!selectedConversation || isSendingMessage || !canSendMessage"
-            @input="handleMessageInput"
-          />
-        </div>
+    <div class="border-t p-3">
+      <div class="flex items-center gap-2 rounded-xl border bg-background p-2">
+        <Input
+          id="help-message-input"
+          :model-value="messageInput"
+          class="h-10 border-0 bg-transparent shadow-none focus-visible:ring-0"
+          placeholder="Type your question..."
+          :disabled="!selectedConversation || isSendingMessage || !canSendMessage"
+          @update:model-value="handleInputUpdate"
+          @keydown.enter.prevent="handleSendHotkey"
+        />
         <Button
-          class="mb-0.5 shrink-0"
+          class="h-10 shrink-0 px-4"
           :disabled="!selectedConversation || isSendingMessage || !canSendMessage"
           @click="emit('sendMessage')"
         >

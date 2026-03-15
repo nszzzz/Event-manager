@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/avatar"
 import type { ChatMessage, ChatUser } from "@/lib/help-chat"
 import {
+  formatDateTime,
   getUserAvatarStyle,
   getUserInitial,
 } from "@/lib/help-chat"
@@ -60,18 +61,28 @@ const avatarSeed = computed(() => `${props.message.sender_type}-${senderName.val
       >
         {{ senderName }}
       </p>
-      <div
-        class="rounded-2xl px-3 py-2 text-sm leading-relaxed shadow-sm"
-        :class="isMine
-          ? 'bg-primary text-primary-foreground rounded-tr-sm'
-          : props.message.sender_type === 'system'
-            ? 'border border-dashed bg-muted/60 text-muted-foreground rounded-tl-sm'
-            : props.message.sender_type === 'bot'
-              ? 'border bg-background rounded-tl-sm'
-              : 'border bg-accent/40 rounded-tl-sm'"
-      >
-        {{ props.message.content }}
+      <div class="space-y-1">
+        <div
+          class="rounded-2xl px-3 py-2 text-sm leading-relaxed shadow-sm"
+          :class="isMine
+            ? 'bg-primary text-primary-foreground rounded-tr-sm'
+            : props.message.sender_type === 'system'
+              ? 'border border-dashed bg-muted/60 text-muted-foreground rounded-tl-sm'
+              : props.message.sender_type === 'bot'
+                ? 'border bg-background rounded-tl-sm'
+                : 'border bg-accent/40 rounded-tl-sm'"
+        >
+          {{ props.message.content }}
+        </div>
+        <p
+          class="text-[10px] text-muted-foreground"
+          :class="isMine ? 'text-right' : ''"
+        >
+          {{ formatDateTime(props.message.created_at ?? props.message.updated_at ?? null) }}
+        </p>
       </div>
     </div>
+
+    <div v-if="isMine" class="mt-1 h-7 w-7 shrink-0" />
   </div>
 </template>
