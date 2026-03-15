@@ -4,7 +4,7 @@ import LoginView from '../views/Auth/LoginView.vue'
 import VerifyView from '../views/Auth/VerifyView.vue'
 import ForgotPasswordView from '../views/Auth/ForgotPasswordView.vue'
 import ResetPasswordView from '../views/Auth/ResetPasswordView.vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '../stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
